@@ -17,6 +17,13 @@ new class extends Component
             'password' => ['required', 'string', 'current_password'],
         ]);
 
+        // Riwayat pesanan wajib disimpan (laporan & retur), jadi akun yang pernah berbelanja tidak dihapus.
+        if (Auth::user()->orders()->exists()) {
+            $this->addError('password', 'Akun yang punya riwayat pesanan tidak bisa dihapus. Hubungi kami lewat chat jika ingin menutup akun.');
+
+            return;
+        }
+
         tap(Auth::user(), $logout(...))->delete();
 
         $this->redirect('/', navigate: true);
