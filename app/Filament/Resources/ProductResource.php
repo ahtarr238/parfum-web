@@ -156,7 +156,7 @@ class ProductResource extends Resource
                 Tables\Filters\SelectFilter::make('brand')->label('Brand')->relationship('brand', 'name'),
                 Tables\Filters\TernaryFilter::make('is_active')->label('Aktif'),
                 Tables\Filters\Filter::make('low_stock')->label('Stok menipis')
-                    ->query(fn (Builder $q) => $q->whereHas('variants', fn (Builder $v) => $v->where('stock', '<=', self::LOW_STOCK))),
+                    ->query(fn (Builder $query) => $query->whereHas('variants', fn (Builder $v) => $v->where('stock', '<=', self::LOW_STOCK))),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

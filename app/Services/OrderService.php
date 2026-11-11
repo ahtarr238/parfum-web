@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
+use App\Events\OrderPaid;
 use App\Events\OrderPlaced;
+use App\Events\OrderShipped;
 use App\Exceptions\OrderException;
 use App\Exceptions\ShippingException;
 use App\Models\Address;
@@ -105,6 +107,146 @@ class OrderService
         OrderPlaced::dispatch($order);
 
         return $order;
+    }
+
+    /**
+     * Batalkan order dan kembalikan stok serta kuota voucher. Aman dipanggil bersamaan
+     * (row lock pada order), stok tidak akan dikembalikan dua kali.
+     */
+    public function cancel(Order $order): Order
+    {
+        return DB::transaction(function () use ($order) {
+            $locked = $this->lock($order);
+
+            if (! in_array($locked->status, [OrderStatus::PendingPayment, OrderStatus::Paid, OrderStatus::Processing], true)) {
+                throw new OrderException("Pesanan berstatus {$locked->status->label()} tidak bisa dibatalkan.");
+            }
+
+            $locked->load('items');
+            $variantIds = $locked->items->pluck('product_variant_id')->filter()->sort()->values();
+            ProductVariant::whereIn('id', $variantIds)->orderBy('id')->lockForUpdate()->get();
+
+            foreach ($locked->items as $item) {
+                if ($item->product_variant_id) {
+                    ProductVariant::whereKey($item->product_variant_id)->increment('stock', $item->qty);
+                }
+            }
+
+            if ($locked->voucher_id && $locked->voucher) {
+                $this->vouchers->release($locked->voucher);
+            }
+
+            $locked->update(['status' => OrderStatus::Cancelled]);
+
+            return $locked;
+        });
+    }
+
+    /**
+     * Batalkan semua order Menunggu Bayar yang lewat batas waktu. Mengembalikan jumlah order.
+     */
+    public function expireOverdue(): int
+    {
+        $count = 0;
+
+        Order::where('status', OrderStatus::PendingPayment)
+            ->where('expires_at', '<=', now())
+            ->orderBy('id')
+            ->each(function (Order $order) use (&$count) {
+                try {
+                    $this->cancel($order);
+                    $count++;
+                } catch (OrderException) {
+                    // Sudah berubah status (mis. baru dibayar) di antara query dan lock.
+                }
+            });
+
+        return $count;
+    }
+
+    /**
+     * HANYA dipanggil dari webhook Midtrans dengan signature valid.
+     *
+     * @param  array<string, mixed>  $payment
+     */
+    public function markPaid(Order $order, array $payment): Order
+    {
+        $order = DB::transaction(function () use ($order, $payment) {
+            $locked = $this->lock($order);
+
+            if ($locked->status === OrderStatus::Paid) {
+                return $locked;
+            }
+
+            if ($locked->status !== OrderStatus::PendingPayment) {
+                throw new OrderException("Pesanan {$locked->code} berstatus {$locked->status->label()}, tidak bisa ditandai dibayar.");
+            }
+
+            $locked->update(['status' => OrderStatus::Paid]);
+            $locked->payment?->update([
+                'status' => 'settlement',
+                'payment_type' => $payment['payment_type'] ?? $locked->payment->payment_type,
+                'paid_at' => now(),
+                'raw_response' => $payment,
+            ]);
+
+            return $locked;
+        });
+
+        OrderPaid::dispatch($order);
+
+        return $order;
+    }
+
+    public function markProcessing(Order $order): Order
+    {
+        return $this->transition($order, [OrderStatus::Paid], OrderStatus::Processing);
+    }
+
+    public function ship(Order $order, string $trackingNumber): Order
+    {
+        $trackingNumber = trim($trackingNumber);
+
+        if ($trackingNumber === '') {
+            throw new OrderException('Nomor resi wajib diisi.');
+        }
+
+        $order = $this->transition($order, [OrderStatus::Paid, OrderStatus::Processing], OrderStatus::Shipped, [
+            'tracking_number' => $trackingNumber,
+        ]);
+
+        OrderShipped::dispatch($order);
+
+        return $order;
+    }
+
+    public function complete(Order $order): Order
+    {
+        return $this->transition($order, [OrderStatus::Shipped], OrderStatus::Completed);
+    }
+
+    /**
+     * @param  list<OrderStatus>  $from
+     * @param  array<string, mixed>  $extra
+     */
+    private function transition(Order $order, array $from, OrderStatus $to, array $extra = []): Order
+    {
+        return DB::transaction(function () use ($order, $from, $to, $extra) {
+            $locked = $this->lock($order);
+
+            if (! in_array($locked->status, $from, true)) {
+                throw new OrderException("Pesanan berstatus {$locked->status->label()} tidak bisa diubah menjadi {$to->label()}.");
+            }
+
+            $locked->update(['status' => $to, ...$extra]);
+
+            return $locked;
+        });
+    }
+
+    private function lock(Order $order): Order
+    {
+        return Order::whereKey($order->id)->lockForUpdate()->firstOrFail();
     }
 
     private function shippingOption(Address $address, int $weight, string $key): ShippingOption
