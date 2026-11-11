@@ -3,23 +3,27 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
-     * Seed the application's database.
+     * Data dev. Admin TIDAK dibuat di sini: pakai `php artisan app:create-admin`.
+     *
+     * Customer uji: customer@tokoparfum.test / password
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            CategorySeeder::class,
+            CatalogDemoSeeder::class,
+            FaqSeeder::class,
         ]);
+
+        User::updateOrCreate(['email' => 'customer@tokoparfum.test'], [
+            'name' => 'Customer Uji',
+            'phone' => '081234567890',
+            'password' => 'password',
+        ])->forceFill(['email_verified_at' => now()])->save();
     }
 }
