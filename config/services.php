@@ -14,6 +14,16 @@ return [
     |
     */
 
+    'rajaongkir' => [
+        'key' => env('RAJAONGKIR_API_KEY'),
+        'base_url' => env('RAJAONGKIR_BASE_URL', 'https://rajaongkir.komerce.id/api/v1'),
+        // ID kecamatan (district) gudang asal pengiriman.
+        'origin' => (int) env('RAJAONGKIR_ORIGIN', 0),
+        'couriers' => env('RAJAONGKIR_COURIERS', 'jne:jnt:sicepat:pos:tiki'),
+        // Hanya berlaku di APP_ENV=local: pakai data contoh tanpa memanggil API asli.
+        'fake' => (bool) env('RAJAONGKIR_FAKE', false),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
