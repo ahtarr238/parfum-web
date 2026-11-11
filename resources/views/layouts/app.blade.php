@@ -31,5 +31,6 @@
         </div>
 
         @stack('modals')
+        <livewire:chat-widget />
     </body>
 </html>

@@ -22,5 +22,6 @@
                 {{ $slot }}
             </div>
         </div>
+        <livewire:chat-widget />
     </body>
 </html>
