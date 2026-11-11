@@ -113,6 +113,8 @@ class ChatInbox extends Page
         }
 
         $this->reply = '';
+        // Percakapan pindah ke "Dibalas"; ikut pindah tab supaya admin tidak kehilangan konteks.
+        $this->tab = ConversationStatus::Open->value;
         unset($this->selected, $this->conversations, $this->counts);
     }
 

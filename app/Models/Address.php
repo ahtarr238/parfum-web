@@ -33,7 +33,7 @@ class Address extends Model
 
     public function fullText(): string
     {
-        return "{$this->detail}, {$this->district_name}, {$this->city_name}, {$this->province_name} {$this->postal_code}";
+        return $this->detail.', '.region_name($this->district_name).', '.region_name($this->city_name).', '.region_name($this->province_name).' '.$this->postal_code;
     }
 
     /**
