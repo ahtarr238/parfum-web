@@ -4,7 +4,6 @@ use App\Enums\ConversationStatus;
 use App\Filament\Pages\ChatInbox;
 use App\Models\User;
 use App\Notifications\QueuedResetPassword;
-use App\Notifications\QueuedVerifyEmail;
 use App\Services\ChatService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Notification;
@@ -18,14 +17,12 @@ it('format nama wilayah rapi dan mempertahankan singkatan', function () {
         ->and(region_name(null))->toBe('');
 });
 
-it('email verifikasi dan reset password dikirim lewat queue', function () {
+it('email reset password dikirim lewat queue', function () {
     Notification::fake();
-    $user = User::factory()->unverified()->create();
+    $user = User::factory()->create();
 
-    $user->sendEmailVerificationNotification();
     $user->sendPasswordResetNotification('token');
 
-    Notification::assertSentTo($user, QueuedVerifyEmail::class, fn ($n) => $n instanceof ShouldQueue);
     Notification::assertSentTo($user, QueuedResetPassword::class, fn ($n) => $n instanceof ShouldQueue);
 });
 
@@ -40,11 +37,4 @@ it('setelah admin membalas, inbox pindah ke tab Dibalas dengan percakapan tetap 
         ->call('sendReply')
         ->assertSet('tab', ConversationStatus::Open->value)
         ->assertSet('selectedId', $conversation->id);
-});
-
-it('halaman verifikasi email tanpa tanda seru', function () {
-    $this->actingAs(User::factory()->unverified()->create())
-        ->get('/verify-email')
-        ->assertOk()
-        ->assertSee('Terima kasih sudah mendaftar. Sebelum belanja')->assertDontSee('mendaftar!');
 });

@@ -4,18 +4,19 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use App\Notifications\QueuedResetPassword;
-use App\Notifications\QueuedVerifyEmail;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable implements FilamentUser, MustVerifyEmail
+/**
+ * Tanpa verifikasi email (keputusan pemilik, 11 Nov 2026): akun baru langsung bisa belanja.
+ */
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -89,11 +90,6 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class);
-    }
-
-    public function sendEmailVerificationNotification(): void
-    {
-        $this->notify(new QueuedVerifyEmail);
     }
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void

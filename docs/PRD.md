@@ -48,7 +48,7 @@ Fitur 7, 8, dan 10 adalah fitur wajib dari klien. Prioritas P0 = harus ada saat 
 
 | # | Fitur | User story | Acceptance criteria | Prioritas |
 | --- | --- | --- | --- | --- |
-| 1 | Auth & profil | Sebagai customer, saya ingin daftar dan login agar bisa belanja dan melihat pesanan saya. | Register, login, logout, lupa password via email; verifikasi email; kelola profil dan beberapa alamat dengan satu alamat utama. | P0 |
+| 1 | Auth & profil | Sebagai customer, saya ingin daftar dan login agar bisa belanja dan melihat pesanan saya. | Register, login, logout, lupa password via email; tanpa verifikasi email (dihapus atas keputusan pemilik, 11 Nov 2026: akun baru langsung bisa belanja); kelola profil dan beberapa alamat dengan satu alamat utama. | P0 |
 | 2 | Katalog & kategori | Sebagai pengunjung, saya ingin melihat parfum per kategori agar cepat menemukan yang cocok. | Kategori pria, wanita, unisex; halaman brand; produk nonaktif atau stok 0 ditandai "Habis". | P0 |
 | 3 | Search & filter | Sebagai pengunjung, saya ingin mencari dan memfilter parfum berdasarkan aroma. | Search nama/brand; filter aroma (woody, floral, fresh, oriental, gourmand), brand, ukuran, rentang harga; sort terbaru, termurah, terlaris. | P0 |
 | 4 | Detail produk & varian | Sebagai pengunjung, saya ingin melihat detail aroma dan memilih ukuran. | Galeri foto; notes top/middle/base; varian ukuran (mis. 30ml, 50ml, 100ml, decant) dengan harga, stok, dan berat masing-masing. | P0 |

@@ -21,8 +21,8 @@ beforeEach(function () {
     CartItem::factory()->for($this->user)->create(['product_variant_id' => $variant->id, 'qty' => 1]);
 });
 
-it('checkout butuh email terverifikasi', function () {
-    $this->actingAs(User::factory()->unverified()->create())->get('/checkout')->assertRedirect('/verify-email');
+it('checkout butuh login', function () {
+    $this->get('/checkout')->assertRedirect('/login');
 });
 
 it('keranjang kosong diarahkan ke halaman keranjang', function () {

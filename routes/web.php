@@ -24,7 +24,7 @@ Route::get('parfum/{product:slug}', ProductDetail::class)->name('products.show')
 Route::middleware('auth')->group(function () {
     Route::get('keranjang', Cart::class)->name('cart');
     Route::get('wishlist', Wishlist::class)->name('wishlist');
-    Route::get('checkout', Checkout::class)->middleware('verified')->name('checkout');
+    Route::get('checkout', Checkout::class)->name('checkout');
     Route::get('pesanan', OrderIndex::class)->name('orders.index');
     Route::get('pesanan/{order:code}', OrderShow::class)->name('orders.show');
     Route::get('akun/alamat', Addresses::class)->name('addresses');
