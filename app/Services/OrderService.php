@@ -36,13 +36,29 @@ class OrderService
             throw new OrderException('Alamat tidak ditemukan.');
         }
 
-        $cartItems = $user->cartItems()->orderBy('product_variant_id')->get();
+        // Ongkir dihitung sebelum transaction supaya panggilan API tidak menahan row lock stok.
+        $preview = $user->cartItems()->with('variant:id,weight_gram')->get();
 
-        if ($cartItems->isEmpty()) {
+        if ($preview->isEmpty()) {
             throw new OrderException('Keranjang kosong.');
         }
 
-        $order = DB::transaction(function () use ($user, $address, $shippingKey, $voucherCode, $cartItems) {
+        $option = $this->shippingOption(
+            $address,
+            (int) $preview->sum(fn (CartItem $i) => ($i->variant?->weight_gram ?? 0) * $i->qty),
+            $shippingKey,
+        );
+
+        $order = DB::transaction(function () use ($user, $address, $voucherCode, $option) {
+            // Kunci baris user supaya dua request checkout bersamaan tidak membuat dua order dari keranjang yang sama.
+            User::whereKey($user->id)->lockForUpdate()->first();
+
+            $cartItems = $user->cartItems()->orderBy('product_variant_id')->get();
+
+            if ($cartItems->isEmpty()) {
+                throw new OrderException('Keranjang kosong.');
+            }
+
             /** @var Collection<int, ProductVariant> $variants */
             $variants = ProductVariant::with('product:id,name,is_active')
                 ->whereIn('id', $cartItems->pluck('product_variant_id'))
@@ -52,7 +68,6 @@ class OrderService
                 ->keyBy('id');
 
             $subtotal = 0;
-            $weight = 0;
 
             foreach ($cartItems as $item) {
                 $variant = $variants->get($item->product_variant_id);
@@ -63,10 +78,8 @@ class OrderService
                 }
 
                 $subtotal += $variant->price * $item->qty;
-                $weight += $variant->weight_gram * $item->qty;
             }
 
-            $option = $this->shippingOption($address, $weight, $shippingKey);
             $voucher = $voucherCode ? $this->vouchers->claim($voucherCode, $subtotal, $user) : null;
             $discount = $voucher ? $this->vouchers->discountFor($voucher, $subtotal) : 0;
 
@@ -110,16 +123,46 @@ class OrderService
     }
 
     /**
-     * Batalkan order dan kembalikan stok serta kuota voucher. Aman dipanggil bersamaan
-     * (row lock pada order), stok tidak akan dikembalikan dua kali.
+     * Pembatalan oleh admin: Menunggu Bayar, Dibayar, atau Dikemas (refund manual).
      */
     public function cancel(Order $order): Order
     {
-        return DB::transaction(function () use ($order) {
+        return $this->cancelFrom($order, [OrderStatus::PendingPayment, OrderStatus::Paid, OrderStatus::Processing]);
+    }
+
+    /**
+     * Pembatalan oleh customer: hanya selama belum dibayar (status dicek ulang di bawah lock).
+     */
+    public function cancelUnpaid(Order $order): Order
+    {
+        return $this->cancelFrom($order, [OrderStatus::PendingPayment]);
+    }
+
+    /**
+     * Kedaluwarsa: hanya jika masih Menunggu Bayar dan batas waktunya sudah lewat (dicek di bawah lock).
+     */
+    public function expire(Order $order): Order
+    {
+        return $this->cancelFrom($order, [OrderStatus::PendingPayment], mustBeOverdue: true);
+    }
+
+    /**
+     * Kembalikan stok dan kuota voucher. Aman dipanggil bersamaan (row lock pada order),
+     * stok tidak akan dikembalikan dua kali.
+     *
+     * @param  list<OrderStatus>  $allowedFrom
+     */
+    private function cancelFrom(Order $order, array $allowedFrom, bool $mustBeOverdue = false): Order
+    {
+        return DB::transaction(function () use ($order, $allowedFrom, $mustBeOverdue) {
             $locked = $this->lock($order);
 
-            if (! in_array($locked->status, [OrderStatus::PendingPayment, OrderStatus::Paid, OrderStatus::Processing], true)) {
+            if (! in_array($locked->status, $allowedFrom, true)) {
                 throw new OrderException("Pesanan berstatus {$locked->status->label()} tidak bisa dibatalkan.");
+            }
+
+            if ($mustBeOverdue && $locked->expires_at->isFuture()) {
+                throw new OrderException('Batas waktu pembayaran pesanan ini belum lewat.');
             }
 
             $locked->load('items');
@@ -151,13 +194,13 @@ class OrderService
 
         Order::where('status', OrderStatus::PendingPayment)
             ->where('expires_at', '<=', now())
-            ->orderBy('id')
+            ->lazyById(200)
             ->each(function (Order $order) use (&$count) {
                 try {
-                    $this->cancel($order);
+                    $this->expire($order);
                     $count++;
                 } catch (OrderException) {
-                    // Sudah berubah status (mis. baru dibayar) di antara query dan lock.
+                    // Sudah dibayar atau berubah di antara query dan lock: biarkan.
                 }
             });
 
@@ -171,9 +214,12 @@ class OrderService
      */
     public function markPaid(Order $order, array $payment): Order
     {
-        $order = DB::transaction(function () use ($order, $payment) {
+        $changed = false;
+
+        $order = DB::transaction(function () use ($order, $payment, &$changed) {
             $locked = $this->lock($order);
 
+            // Notifikasi Midtrans bisa dikirim ulang: idempotent, tanpa email kedua.
             if ($locked->status === OrderStatus::Paid) {
                 return $locked;
             }
@@ -189,11 +235,14 @@ class OrderService
                 'paid_at' => now(),
                 'raw_response' => $payment,
             ]);
+            $changed = true;
 
             return $locked;
         });
 
-        OrderPaid::dispatch($order);
+        if ($changed) {
+            OrderPaid::dispatch($order);
+        }
 
         return $order;
     }

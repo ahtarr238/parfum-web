@@ -11,7 +11,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 
 class OrderResource extends Resource
 {
@@ -86,8 +85,8 @@ class OrderResource extends Resource
                         $a = $record->address_snapshot;
 
                         return ($a['recipient'] ?? '').' ('.($a['phone'] ?? '').")\n"
-                            .($a['detail'] ?? '').', '.Str::title($a['district_name'] ?? '').', '
-                            .Str::title($a['city_name'] ?? '').', '.Str::title($a['province_name'] ?? '').' '.($a['postal_code'] ?? '');
+                            .($a['detail'] ?? '').', '.region_name($a['district_name'] ?? '').', '
+                            .region_name($a['city_name'] ?? '').', '.region_name($a['province_name'] ?? '').' '.($a['postal_code'] ?? '');
                     })
                     ->columnSpanFull(),
             ])->columns(2),

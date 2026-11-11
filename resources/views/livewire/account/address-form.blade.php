@@ -24,7 +24,7 @@
             <select id="addr-province" wire:model.live="province_id" class="field h-10">
                 <option value="">Pilih provinsi</option>
                 @foreach ($this->provinces as $id => $name)
-                    <option value="{{ $id }}">{{ \Illuminate\Support\Str::title($name) }}</option>
+                    <option value="{{ $id }}">{{ region_name($name) }}</option>
                 @endforeach
             </select>
             @error('province_id') <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p> @enderror
@@ -34,7 +34,7 @@
             <select id="addr-city" wire:model.live="city_id" class="field h-10" @disabled(! $province_id)>
                 <option value="">Pilih kota/kabupaten</option>
                 @foreach ($this->cities as $id => $name)
-                    <option value="{{ $id }}">{{ \Illuminate\Support\Str::title($name) }}</option>
+                    <option value="{{ $id }}">{{ region_name($name) }}</option>
                 @endforeach
             </select>
             @error('city_id') <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p> @enderror
@@ -44,7 +44,7 @@
             <select id="addr-district" wire:model.live="district_id" class="field h-10" @disabled(! $city_id)>
                 <option value="">Pilih kecamatan</option>
                 @foreach ($this->districts as $id => $name)
-                    <option value="{{ $id }}">{{ \Illuminate\Support\Str::title($name) }}</option>
+                    <option value="{{ $id }}">{{ region_name($name) }}</option>
                 @endforeach
             </select>
             @error('district_id') <p class="mt-1.5 text-sm text-red-700">{{ $message }}</p> @enderror

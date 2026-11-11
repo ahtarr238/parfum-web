@@ -72,7 +72,7 @@
             </dl>
             <div class="mt-4 border-t border-line pt-4 text-sm leading-6">
                 <p class="text-ink">{{ $snap['recipient'] ?? '' }} · <span class="tabular-nums">{{ $snap['phone'] ?? '' }}</span></p>
-                <p class="text-ink-2">{{ $snap['detail'] ?? '' }}, {{ \Illuminate\Support\Str::title($snap['district_name'] ?? '') }}, {{ \Illuminate\Support\Str::title($snap['city_name'] ?? '') }}, {{ \Illuminate\Support\Str::title($snap['province_name'] ?? '') }} {{ $snap['postal_code'] ?? '' }}</p>
+                <p class="text-ink-2">{{ $snap['detail'] ?? '' }}, {{ region_name($snap['district_name'] ?? '') }}, {{ region_name($snap['city_name'] ?? '') }}, {{ region_name($snap['province_name'] ?? '') }} {{ $snap['postal_code'] ?? '' }}</p>
             </div>
         </div>
 

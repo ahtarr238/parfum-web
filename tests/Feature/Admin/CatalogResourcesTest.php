@@ -92,18 +92,20 @@ it('menolak varian tanpa harga dan sku ganda', function () {
     expect(Product::where('slug', 'x')->exists())->toBeFalse();
 });
 
-it('admin mengubah stok varian', function () {
+it('admin mengubah harga varian lewat form, stok tidak ikut tertimpa', function () {
     $product = Product::factory()->create();
-    $variant = ProductVariant::factory()->for($product)->create(['stock' => 1]);
+    $variant = ProductVariant::factory()->for($product)->create(['stock' => 1, 'price' => 100000]);
 
     $component = Livewire::actingAs($this->admin)->test(EditProduct::class, ['record' => $product->slug]);
     $key = array_key_first($component->get('data.variants'));
 
-    $component->set("data.variants.{$key}.stock", 25)
+    $component->set("data.variants.{$key}.price", 125000)
+        ->set("data.variants.{$key}.stock", 25)
         ->call('save')
         ->assertHasNoFormErrors();
 
-    expect($variant->fresh()->stock)->toBe(25);
+    expect($variant->fresh()->price)->toBe(125000)
+        ->and($variant->fresh()->stock)->toBe(1);
 });
 
 it('ImageOptimizer mengubah gambar ke WebP dan membatasi lebar', function () {

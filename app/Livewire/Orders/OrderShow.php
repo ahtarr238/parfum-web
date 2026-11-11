@@ -36,7 +36,7 @@ class OrderShow extends Component
             return;
         }
 
-        $this->run(fn () => $orders->cancel($this->order));
+        $this->run(fn () => $orders->cancelUnpaid($this->order));
     }
 
     public function render(): View

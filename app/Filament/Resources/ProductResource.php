@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Enums\ScentFamily;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Support\ImageOptimizer;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -74,7 +75,12 @@ class ProductResource extends Resource
                             Forms\Components\TextInput::make('sku')->label('SKU')->required()->maxLength(50)
                                 ->unique(table: 'product_variants', column: 'sku', ignoreRecord: true),
                             Forms\Components\TextInput::make('price')->label('Harga')->prefix('Rp')->numeric()->integer()->minValue(1000)->required(),
-                            Forms\Components\TextInput::make('stock')->label('Stok')->numeric()->integer()->minValue(0)->required()->default(0),
+                            // Stok varian yang sudah ada hanya diubah lewat aksi "Ubah stok" (atomik),
+                            // supaya menyimpan form tidak menimpa stok yang berubah karena pesanan.
+                            Forms\Components\TextInput::make('stock')->label('Stok')->numeric()->integer()->minValue(0)->required()->default(0)
+                                ->disabled(fn (?ProductVariant $record) => $record?->exists ?? false)
+                                ->dehydrated(fn (?ProductVariant $record) => ! ($record?->exists ?? false))
+                                ->helperText(fn (?ProductVariant $record) => $record?->exists ? 'Ubah lewat tombol Ubah stok' : null),
                             Forms\Components\TextInput::make('weight_gram')->label('Berat kirim (gram)')->numeric()->integer()->minValue(1)->required(),
                             Forms\Components\Toggle::make('is_decant')->label('Decant')->inline(false),
                         ])
