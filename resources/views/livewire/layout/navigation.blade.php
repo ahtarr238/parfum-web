@@ -103,6 +103,7 @@ new class extends Component
                 </div>
             @else
                 <a href="{{ route('login') }}" wire:navigate class="hidden h-9 items-center rounded-lg px-3 text-[15px] text-ink-2 hover:text-ink sm:inline-flex">Masuk</a>
+                <a href="{{ route('register') }}" wire:navigate class="btn-primary btn-sm hidden sm:inline-flex">Daftar</a>
             @endauth
 
             <button type="button" @click="open = ! open" class="inline-flex size-9 items-center justify-center rounded-lg text-ink-2 hover:bg-ink/5 hover:text-ink md:hidden" aria-label="Menu">
