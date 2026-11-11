@@ -11,6 +11,7 @@ it('menghubungkan user dengan item keranjang dan wishlist', function () {
     $user = User::factory()->create();
     CartItem::factory()->for($user)->count(2)->create();
     WishlistItem::factory()->for($user)->create();
+    $user->load('cartItems.variant', 'wishlistItems.product');
 
     expect($user->cartItems)->toHaveCount(2)
         ->and($user->wishlistItems)->toHaveCount(1)
