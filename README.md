@@ -17,6 +17,7 @@ php artisan app:create-admin
 php artisan serve
 ```
 
+- **Windows:** aktifkan OPcache di `php.ini` (`zend_extension=opcache`, `opcache.enable=1`, `opcache.revalidate_freq=0`). Tanpa OPcache, `php artisan serve` di Windows hanya melayani satu request dalam satu waktu dan membaca ulang ribuan file PHP setiap request, sehingga halaman (terutama login dan `/admin`) bisa loading belasan detik sampai timeout.
 - **Customer uji dari seeder:** `customer@tokoparfum.test` / `password`.
 - **Admin:** buat lewat `php artisan app:create-admin`. Seeder sengaja tidak membuat admin.
 - **Ongkir tanpa API key:** set `RAJAONGKIR_FAKE=true`. Ini hanya berlaku di `APP_ENV=local` dan memakai data wilayah serta tarif contoh.
