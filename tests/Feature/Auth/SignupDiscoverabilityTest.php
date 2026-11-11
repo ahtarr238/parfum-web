@@ -20,3 +20,11 @@ it('memakai kata "Email", bukan "Surel"', function () {
         $this->get($page)->assertOk()->assertSee('Email')->assertDontSee('Surel')->assertDontSee('surel');
     }
 });
+
+it('teks halaman auth singkat, tanpa tanda seru, dan memakai "kamu"', function () {
+    expect(__('auth.failed'))->toBe('Email atau kata sandi salah.')
+        ->and(__('passwords.sent'))->toBe('Link reset kata sandi sudah kami kirim ke email kamu.')
+        ->and(__('Already registered?'))->toBe('Sudah punya akun? Masuk');
+
+    $this->get('/forgot-password')->assertSee('Lupa kata sandi? Masukkan email akunmu')->assertDontSee('Tidak masalah');
+});
