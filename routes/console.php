@@ -1,8 +1,14 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+/*
+| Shared hosting: cukup satu cron `* * * * * php artisan schedule:run`.
+| Tidak ada proses yang jalan terus; queue diproses per menit lalu berhenti.
+*/
+
+Schedule::command('orders:expire')->everyMinute()->withoutOverlapping();
+
+Schedule::command('queue:work --stop-when-empty --tries=3 --max-time=50')
+    ->everyMinute()
+    ->withoutOverlapping();
