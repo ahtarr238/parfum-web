@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Livewire\Account\Addresses;
 use App\Livewire\Cart;
 use App\Livewire\Catalog;
+use App\Livewire\Checkout;
 use App\Livewire\Orders\OrderIndex;
 use App\Livewire\Orders\OrderShow;
 use App\Livewire\ProductDetail;
@@ -23,6 +24,7 @@ Route::get('parfum/{product:slug}', ProductDetail::class)->name('products.show')
 Route::middleware('auth')->group(function () {
     Route::get('keranjang', Cart::class)->name('cart');
     Route::get('wishlist', Wishlist::class)->name('wishlist');
+    Route::get('checkout', Checkout::class)->middleware('verified')->name('checkout');
     Route::get('pesanan', OrderIndex::class)->name('orders.index');
     Route::get('pesanan/{order:code}', OrderShow::class)->name('orders.show');
     Route::get('akun/alamat', Addresses::class)->name('addresses');

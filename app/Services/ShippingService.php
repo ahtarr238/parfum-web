@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\ShippingException;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -123,7 +124,7 @@ class ShippingService
     }
 
     /**
-     * @param  callable(PendingRequest): \Illuminate\Http\Client\Response  $request
+     * @param  callable(PendingRequest): Response  $request
      * @return array<int|string, mixed>
      */
     private function call(callable $request): array
