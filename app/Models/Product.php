@@ -40,4 +40,9 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariant::class)->orderBy('size_ml');
     }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
 }
