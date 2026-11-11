@@ -23,6 +23,8 @@ class Product extends Model
             'scent_family' => ScentFamily::class,
             'images' => 'array',
             'is_active' => 'boolean',
+            'min_price' => 'integer',
+            'total_stock' => 'integer',
         ];
     }
 
@@ -44,5 +46,55 @@ class Product extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    public function visibleReviews(): HasMany
+    {
+        return $this->reviews()->where('is_visible', true)->latest();
+    }
+
+    /**
+     * Habis jika produk nonaktif atau total stok semua varian 0.
+     */
+    public function isSoldOut(): bool
+    {
+        if (! $this->is_active) {
+            return true;
+        }
+
+        $stock = array_key_exists('total_stock', $this->attributes)
+            ? (int) $this->attributes['total_stock']
+            : (int) $this->variants()->sum('stock');
+
+        return $stock <= 0;
+    }
+
+    public function startingPrice(): int
+    {
+        return array_key_exists('min_price', $this->attributes)
+            ? (int) $this->attributes['min_price']
+            : (int) $this->variants()->min('price');
+    }
+
+    public function coverImage(): ?string
+    {
+        return $this->images[0] ?? null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function notesList(string $layer): array
+    {
+        return collect(explode(',', (string) $this->{$layer.'_notes'}))
+            ->map(fn (string $n) => trim($n))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
     }
 }

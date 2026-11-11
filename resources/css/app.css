@@ -1,3 +1,67 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        @apply bg-paper text-ink font-sans antialiased;
+    }
+
+    :focus-visible {
+        @apply outline-none ring-2 ring-ember/60 ring-offset-2 ring-offset-paper;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer components {
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 h-11 text-[15px] font-medium transition-[background-color,color,border-color,transform] duration-150 ease-out active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    }
+
+    .btn-primary {
+        @apply btn bg-ink text-paper-card hover:bg-ink/90;
+    }
+
+    .btn-accent {
+        @apply btn bg-ember text-white hover:bg-ember-dark;
+    }
+
+    .btn-secondary {
+        @apply btn bg-paper-card text-ink border border-line hover:bg-paper-raised;
+    }
+
+    .btn-sm {
+        @apply h-9 px-4 text-sm;
+    }
+
+    .field {
+        @apply block w-full rounded-lg border-line bg-paper-card text-[15px] text-ink placeholder:text-ink-3 focus:border-ember focus:ring-ember/30;
+    }
+
+    .label {
+        @apply block text-sm font-medium text-ink-2 mb-2;
+    }
+
+    .card {
+        @apply rounded-2xl bg-paper-card border border-line;
+    }
+
+    .page {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .meta {
+        @apply text-[13px] leading-5 text-ink-3;
+    }
+
+    .price {
+        @apply tabular-nums;
+    }
+}
