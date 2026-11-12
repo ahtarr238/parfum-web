@@ -20,6 +20,11 @@ return [
         // ID kecamatan (district) gudang asal pengiriman.
         'origin' => (int) env('RAJAONGKIR_ORIGIN', 0),
         'couriers' => env('RAJAONGKIR_COURIERS', 'jne:jnt:sicepat:pos:tiki'),
+        // Layanan yang disembunyikan di checkout (trucking, kirim motor, kargo, barang khusus).
+        'exclude_services' => array_filter(array_map('trim', explode(',', (string) env(
+            'RAJAONGKIR_EXCLUDE_SERVICES',
+            'JTR,JTR<130,JTR>130,JTR>200,TRC,T15,T25,T60,GOKIL,POS KARGO,PAKETPOS DANGEROUS GOODS,PAKETPOS VALUABLE GOODS',
+        )))),
         // Hanya berlaku di APP_ENV=local: pakai data contoh tanpa memanggil API asli.
         'fake' => (bool) env('RAJAONGKIR_FAKE', false),
     ],

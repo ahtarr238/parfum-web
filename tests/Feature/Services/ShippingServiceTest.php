@@ -110,3 +110,46 @@ it('menemukan opsi berdasarkan key', function () {
     expect($service->findOption(1001, 500, 'jne|REG')?->cost)->toBe(18000)
         ->and($service->findOption(1001, 500, 'jne|YES'))->toBeNull();
 });
+
+it('menyembunyikan layanan yang tidak relevan (trucking, motor, kargo)', function () {
+    config(['services.rajaongkir.exclude_services' => ['JTR', 'T15', 'GOKIL', 'POS KARGO']]);
+    Http::fake(['*' => Http::response(['data' => [
+        ['name' => 'JNE', 'code' => 'jne', 'service' => 'REG', 'description' => 'Layanan Reguler', 'cost' => 13000, 'etd' => '1 day'],
+        ['name' => 'JNE', 'code' => 'jne', 'service' => 'JTR', 'description' => 'JNE Trucking', 'cost' => 45000, 'etd' => '3 day'],
+        ['name' => 'TIKI', 'code' => 'tiki', 'service' => 'T15', 'description' => 'Motor', 'cost' => 200000, 'etd' => '6 day'],
+        ['name' => 'SiCepat', 'code' => 'sicepat', 'service' => 'GOKIL', 'description' => 'Kargo', 'cost' => 18300, 'etd' => '3-5 day'],
+        ['name' => 'POS', 'code' => 'pos', 'service' => 'POS KARGO', 'description' => 'Pjb', 'cost' => 39500, 'etd' => '7-14 day'],
+    ]])]);
+
+    $options = app(ShippingService::class)->costs(1322, 900);
+
+    expect(array_map(fn ($o) => $o->service, $options))->toBe(['REG']);
+});
+
+it('memakai nama layanan saat deskripsi kurir hanya angka dan menerjemahkan estimasi', function () {
+    Http::fake(['*' => Http::response(['data' => [
+        ['name' => 'POS', 'code' => 'pos', 'service' => 'Pos Reguler', 'description' => '240', 'cost' => 9900, 'etd' => '2 day'],
+        ['name' => 'TIKI', 'code' => 'tiki', 'service' => 'SDS', 'description' => 'Same Day Service', 'cost' => 30000, 'etd' => '0 day'],
+        ['name' => 'J&T', 'code' => 'jnt', 'service' => 'EZ', 'description' => 'Reguler', 'cost' => 11000, 'etd' => ''],
+    ]])]);
+
+    [$pos, $jnt, $tiki] = app(ShippingService::class)->costs(1322, 900);
+
+    expect($pos->description)->toBe('Pos Reguler')
+        ->and($pos->etd)->toBe('2 hari')
+        ->and($tiki->etd)->toBe('hari ini')
+        ->and($jnt->etd)->toBeNull();
+});
+
+it('mengganti asal gudang tidak memakai ongkir lama dari cache', function () {
+    Http::fake(['*' => Http::response(['data' => [
+        ['name' => 'JNE', 'code' => 'jne', 'service' => 'REG', 'description' => 'Reguler', 'cost' => 13000, 'etd' => '1 day'],
+    ]])]);
+    $service = app(ShippingService::class);
+
+    $service->costs(1322, 900);
+    config(['services.rajaongkir.origin' => 9999]);
+    $service->costs(1322, 900);
+
+    Http::assertSentCount(2);
+});

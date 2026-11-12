@@ -45,7 +45,12 @@ class ShippingService
     public function costs(int $destinationDistrictId, int $weightGram): array
     {
         $weight = max(1, $weightGram);
-        $key = "rajaongkir.cost.{$destinationDistrictId}.{$weight}.".md5((string) config('services.rajaongkir.couriers'));
+        // Kunci cache memuat asal, kurir, dan layanan yang disembunyikan supaya perubahan konfigurasi langsung berlaku.
+        $key = "rajaongkir.cost.{$destinationDistrictId}.{$weight}.".md5(json_encode([
+            (int) config('services.rajaongkir.origin'),
+            (string) config('services.rajaongkir.couriers'),
+            (array) config('services.rajaongkir.exclude_services'),
+        ]));
 
         $rows = Cache::get($key);
 
@@ -81,16 +86,26 @@ class ShippingService
             'price' => 'lowest',
         ]));
 
+        $excluded = array_map('strtoupper', (array) config('services.rajaongkir.exclude_services', []));
+
         $options = collect($data)
             ->filter(fn ($row) => is_array($row) && (int) ($row['cost'] ?? 0) > 0)
-            ->map(fn (array $row) => (new ShippingOption(
-                courier: strtolower((string) ($row['code'] ?? '')),
-                courierName: (string) ($row['name'] ?? ''),
-                service: (string) ($row['service'] ?? ''),
-                description: (string) ($row['description'] ?? ''),
-                cost: (int) $row['cost'],
-                etd: $this->formatEtd((string) ($row['etd'] ?? '')),
-            ))->toArray())
+            // Trucking, kirim motor, kargo, dsb. tidak relevan untuk paket parfum.
+            ->reject(fn (array $row) => in_array(strtoupper(trim((string) ($row['service'] ?? ''))), $excluded, true))
+            ->map(function (array $row) {
+                $service = trim((string) ($row['service'] ?? ''));
+                $description = trim((string) ($row['description'] ?? ''));
+
+                return (new ShippingOption(
+                    courier: strtolower((string) ($row['code'] ?? '')),
+                    courierName: (string) ($row['name'] ?? ''),
+                    service: $service,
+                    // POS kadang mengirim kode angka ("240") sebagai deskripsi.
+                    description: $description === '' || ctype_digit($description) ? $service : $description,
+                    cost: (int) $row['cost'],
+                    etd: $this->formatEtd((string) ($row['etd'] ?? '')),
+                ))->toArray();
+            })
             ->sortBy('cost')
             ->values()
             ->all();
@@ -154,6 +169,10 @@ class ShippingService
     {
         $clean = trim(preg_replace('/\s*(days?|hari)\s*/i', '', $etd));
 
-        return $clean === '' ? null : "{$clean} hari";
+        return match ($clean) {
+            '' => null,
+            '0' => 'hari ini',
+            default => "{$clean} hari",
+        };
     }
 }
